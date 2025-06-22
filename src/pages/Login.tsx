@@ -209,14 +209,15 @@ const LoginPage = () => {
                 className="text-center pt-2 space-y-2"
               >
                 <p className="text-sm text-gray-500 dark:text-gray-300">
-                  Don't have an account?{" "}
-                  <a
-                    href="/signup"
-                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                  Don&apos;t have an account?{" "}
+                  <span
+                    onClick={() => navigate("/signup")}
+                    className="cursor-pointer text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
                   >
                     Sign up
-                  </a>
+                  </span>
                 </p>
+
                 <a
                   onClick={() => navigate("/under-development")}
                   className="cursor-pointer text-xs text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 transition-colors inline-block"
