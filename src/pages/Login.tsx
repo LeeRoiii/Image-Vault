@@ -57,8 +57,8 @@ const LoginPage = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center relative bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4 overflow-hidden">
-
-      {/* Floating background circles */}
+      
+      {/* Background circles */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -104,7 +104,6 @@ const LoginPage = () => {
       >
         <div className="bg-white dark:bg-gray-800 shadow-2xl rounded-2xl overflow-hidden">
           <div className="p-8">
-            {/* Header */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -120,7 +119,7 @@ const LoginPage = () => {
             </motion.div>
 
             <div className="space-y-5">
-              {/* Email Field */}
+              {/* Email */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -146,7 +145,7 @@ const LoginPage = () => {
                 </div>
               </motion.div>
 
-              {/* Password Field */}
+              {/* Password */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -206,19 +205,24 @@ const LoginPage = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="text-center pt-2"
+                className="text-center pt-2 space-y-2"
               >
                 <p className="text-sm text-gray-500 dark:text-gray-300">
-                  Already have an account?{" "}
+                  Don't have an account?{" "}
                   <span
                     onClick={() => navigate("/signup")}
                     className="cursor-pointer text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
                   >
-                    Log in
+                    Sign up
                   </span>
                 </p>
+                <span
+                  onClick={() => navigate("/under-development")}
+                  className="cursor-pointer text-xs text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 transition-colors inline-block"
+                >
+                  Forgot password?
+                </span>
               </motion.div>
-
             </div>
           </div>
         </div>
