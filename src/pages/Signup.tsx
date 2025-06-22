@@ -87,7 +87,7 @@ const SignupPage = () => {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="mb-6"
             >
-              <h1 className="text-3xl font-bold text-blue-600 dark:text-white mb-1">🧳 Image Vault</h1>
+              <h1 className="text-3xl font-bold text-blue-600 dark:text-white mb-1"> Image Vault</h1>
               <p className="text-gray-500 dark:text-gray-300">
                 Create your secure image locker account
               </p>
@@ -192,12 +192,13 @@ const SignupPage = () => {
               >
                 <p className="text-sm text-gray-500 dark:text-gray-300">
                   Already have an account?{" "}
-                  <a
-                    href="/login"
-                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
-                  >
-                    Log in
-                  </a>
+                <span
+                  onClick={() => navigate("/login")}
+                  className="cursor-pointer text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                >
+                  Log in
+                </span>
+
                 </p>
               </motion.div>
             </div>
