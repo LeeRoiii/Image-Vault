@@ -197,6 +197,8 @@ const SignupPage = () => {
                   className="cursor-pointer text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
                 >
                   Log in
+
+                  
                 </span>
 
                 </p>
