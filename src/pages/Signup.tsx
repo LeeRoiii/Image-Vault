@@ -48,8 +48,11 @@ const SignupPage = () => {
       email,
       password,
       options: {
-        // Optional: Redirect to this URL after email confirmation
-        emailRedirectTo: `${window.location.origin}/login`,
+        // Use the full production URL for redirect after email confirmation
+        emailRedirectTo:
+          process.env.NODE_ENV === "production"
+            ? "https://your-production-domain.com/login"
+            : `${window.location.origin}/login`,
       },
     });
 
