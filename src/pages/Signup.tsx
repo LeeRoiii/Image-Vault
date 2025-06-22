@@ -13,7 +13,11 @@ const SignupPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState<{ visible: boolean; message: string; type: "success" | "error" }>({ visible: false, message: "", type: "success" });
+  const [snackbar, setSnackbar] = useState<{
+    visible: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({ visible: false, message: "", type: "success" });
 
   const showSnackbar = (message: string, type: "success" | "error" = "success") => {
     setSnackbar({ visible: true, message, type });
@@ -40,7 +44,14 @@ const SignupPage = () => {
     }
 
     setIsLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Optional: Redirect to this URL after email confirmation
+        emailRedirectTo: `${window.location.origin}/login`,
+      },
+    });
 
     if (error) {
       showSnackbar("Signup failed: " + error.message, "error");
@@ -50,12 +61,12 @@ const SignupPage = () => {
 
     showSnackbar("Signup successful! Check your email.", "success");
     setIsLoading(false);
-    setTimeout(() => navigate("/login"), 1500);
+    setTimeout(() => navigate("/login"), 2500); // allow time to read message
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4">
-      {/* Snackbar at top-right */}
+      {/* Snackbar */}
       <div className="fixed top-6 right-6 z-50">
         <AnimatePresence>
           {snackbar.visible && (
@@ -87,7 +98,9 @@ const SignupPage = () => {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="mb-6"
             >
-              <h1 className="text-3xl font-bold text-blue-600 dark:text-white mb-1"> Image Vault</h1>
+              <h1 className="text-3xl font-bold text-blue-600 dark:text-white mb-1">
+                Image Vault
+              </h1>
               <p className="text-gray-500 dark:text-gray-300">
                 Create your secure image locker account
               </p>
@@ -161,7 +174,7 @@ const SignupPage = () => {
                 </div>
               </motion.div>
 
-              {/* Sign Up Button */}
+              {/* Signup Button */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -183,7 +196,7 @@ const SignupPage = () => {
                 </button>
               </motion.div>
 
-              {/* Login Link */}
+              {/* Link to Login */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -192,15 +205,12 @@ const SignupPage = () => {
               >
                 <p className="text-sm text-gray-500 dark:text-gray-300">
                   Already have an account?{" "}
-                <span
-                  onClick={() => navigate("/login")}
-                  className="cursor-pointer text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
-                >
-                  Log in
-
-                  
-                </span>
-
+                  <span
+                    onClick={() => navigate("/login")}
+                    className="cursor-pointer text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                  >
+                    Log in
+                  </span>
                 </p>
               </motion.div>
             </div>
