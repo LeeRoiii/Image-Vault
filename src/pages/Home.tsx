@@ -1,160 +1,43 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { type ImageData } from "../types";
-import ImageCard from "../components/ImageCard";
-import ImageUploadModal from "../components/ImageUploadModal";
-import ImageModal from "../components/ImageModal";
-import { supabase } from "../supabase";
-import { LogOut, Folder } from "lucide-react";
+import {
+  LogOut,
+  Folder
+} from "lucide-react";
+import { useHomePage } from "../hooks/useHomePage";
+import CategoryCard from "../components/Cards/CategoryCard";
 import EmptyState from "../components/EmptyState";
-import Snackbar from "../components/Snackbar";
-import SkeletonCard from "../components/SkeletonCard";
-import CategoryModal from "../components/CategoryModal";
-import CategoryCard from "../components/CategoryCard";
+import ImageCard from "../components/Cards/ImageCard";
+import SkeletonCard from "../components/Cards/SkeletonCard";
 import Fab from "../components/Fab";
-
-const PAGE_SIZE = 12;
+import ImageUploadModal from "../components/Modals/ImageUploadModal";
+import CategoryModal from "../components/Modals/CategoryModal";
+import ImageModal from "../components/Modals/ImageModal";
+import Snackbar from "../components/Snackbar";
 
 const HomePage = () => {
-  const navigate = useNavigate();
-  const [images, setImages] = useState<ImageData[]>([]);
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
-  const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [showSnackbar, setShowSnackbar] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [categoryView, setCategoryView] = useState(false);
-  const [fabOpen, setFabOpen] = useState(false);
-  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
-  const observer = useRef<IntersectionObserver | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) navigate("/login");
-    });
-    fetchCategories();
-    loadImages(0);
-  }, []);
-
-  const fetchCategories = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user?.id) return;
-
-    const { data, error } = await supabase
-      .from("images")
-      .select("category")
-      .eq("user_id", user.id);
-
-    if (error) {
-      console.error("Error fetching categories:", error);
-      return;
-    }
-
-    const uniqueCategories = Array.from(
-      new Set(data.map((img) => img.category).filter(Boolean))
-    );
-    setCategories(uniqueCategories);
-  };
-
-  const loadImages = async (pageNumber: number, category = selectedCategory) => {
-    setLoading(true);
-    const from = pageNumber * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
-    let query = supabase
-      .from("images")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("date", { ascending: false })
-      .range(from, to);
-
-    if (category) query = query.eq("category", category);
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error fetching images:", error);
-      setLoading(false);
-      return;
-    }
-
-    const imagesWithSignedUrls = await Promise.all(
-      data.map(async (img) => {
-        const { data: signed } = await supabase.storage
-          .from("images")
-          .createSignedUrl(img.url, 3600);
-
-        return {
-          ...img,
-          signedUrl: signed?.signedUrl || "",
-        };
-      })
-    );
-
-    if (pageNumber === 0) {
-      setImages(imagesWithSignedUrls);
-    } else {
-      setImages((prev) => [...prev, ...imagesWithSignedUrls]);
-    }
-
-    setHasMore(data.length === PAGE_SIZE);
-    setLoading(false);
-  };
-
-  const lastImageElementRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (loading) return;
-      if (observer.current) observer.current.disconnect();
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          setPage((prevPage) => prevPage + 1);
-        }
-      });
-      if (node) observer.current.observe(node);
-    },
-    [loading, hasMore]
-  );
-
-  useEffect(() => {
-    if (page === 0) return;
-    loadImages(page);
-  }, [page]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
-  };
-
-  const handleUpload = () => {
-    setUploadModalOpen(false);
-    setPage(0);
-    loadImages(0);
-    fetchCategories();
-    setShowSnackbar(true);
-    setTimeout(() => setShowSnackbar(false), 5000);
-  };
-
-  const handleCategoryClick = (category: string) => {
-    setSelectedCategory(category);
-    setPage(0);
-    setCategoryView(false);
-    loadImages(0, category);
-  };
+  const {
+    images,
+    categories,
+    selectedCategory,
+    uploadModalOpen,
+    selectedImage,
+    loading,
+    showSnackbar,
+    categoryView,
+    fabOpen,
+    categoryModalOpen,
+    setUploadModalOpen,
+    setSelectedImage,
+    setShowSnackbar,
+    setCategoryModalOpen,
+    setFabOpen,
+    setCategoryView,
+    lastImageElementRef,
+    handleLogout,
+    handleUpload,
+    handleCategoryClick,
+    setSelectedCategory,
+    loadImages,
+  } = useHomePage();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 sm:p-6 relative">
@@ -203,7 +86,6 @@ const HomePage = () => {
               isAll
               onClick={() => {
                 setSelectedCategory(null);
-                setPage(0);
                 loadImages(0, null);
                 setCategoryView(false);
               }}
@@ -224,7 +106,6 @@ const HomePage = () => {
                 <button
                   onClick={() => {
                     setSelectedCategory(null);
-                    setPage(0);
                     loadImages(0, null);
                   }}
                   className="text-blue-600 hover:underline font-medium"
@@ -289,7 +170,7 @@ const HomePage = () => {
       {categoryModalOpen && (
         <CategoryModal
           onClose={() => setCategoryModalOpen(false)}
-          onCategoryAdded={fetchCategories}
+          onCategoryAdded={() => {}}
         />
       )}
 

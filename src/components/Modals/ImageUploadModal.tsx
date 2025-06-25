@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { type ImageData } from "../types";
-import { supabase } from "../supabase";
+import { useRef, useState, useEffect } from "react";
+import { type ImageData } from "../../utils/types";
+import { useImageUpload } from "../../hooks/useImageUpload";
+import { supabase } from "../../supabase";
 
 interface Props {
   onUpload: (data: ImageData) => void;
@@ -12,13 +13,19 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [image, setImage] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
-  const [uploadCount, setUploadCount] = useState(0);
   const [showSnackbar, setShowSnackbar] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
+
+  const showToast = (message: string) => {
+    setShowSnackbar(true);
+    setTimeout(() => setShowSnackbar(false), 3000);
+    console.log("Toast:", message);
+  };
+
+  const { handleUpload, uploading, uploadCount } = useImageUpload(onUpload, showToast);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -30,20 +37,22 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const { data, error } = await supabase
-        .from("categories")
-        .select("name")
-        .eq("user_id", user?.id);
+        const { data } = await supabase
+          .from("categories")
+          .select("name")
+          .eq("user_id", user.id);
 
-      if (!error && data) {
-        const names = data.map((item) => item.name).filter(Boolean);
+        const names = data?.map((item) => item.name).filter(Boolean) || [];
         setCategories(names);
+      } catch (err) {
+        console.error("Error fetching categories", err);
       }
     };
+
     fetchCategories();
   }, []);
 
@@ -60,64 +69,14 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
     }
   };
 
-  const handleUpload = async () => {
-    if (uploadCount >= 2) return;
+  const handleSubmit = () => {
+    if (!image) return showToast("Please select an image.");
+    if (!category.trim()) return showToast("Please select a category.");
 
-    if (!image) return alert("Please select an image.");
-    if (!category.trim()) return alert("Please select a category.");
-
-    setUploading(true);
-
-    try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user) throw new Error("User not authenticated.");
-
-      const timestamp = Date.now();
-      const filePath = `${user.id}/${timestamp}_${image.name}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("images")
-        .upload(filePath, image, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const newImage: ImageData = {
-        id: filePath,
-        url: filePath,
-        title,
-        description,
-        category,
-        date: new Date().toISOString(),
-        user_id: user.id,
-      };
-
-      const { error: dbError } = await supabase.from("images").insert(newImage);
-      if (dbError) throw dbError;
-
-      onUpload(newImage);
+    handleUpload(image, title, description, category, () => {
       resetForm();
       onClose();
-
-      setUploadCount((prev) => {
-        const newCount = prev + 1;
-        if (newCount >= 2) {
-          setShowSnackbar(true);
-          setTimeout(() => setShowSnackbar(false), 3000);
-        }
-        return newCount;
-      });
-    } catch (error: any) {
-      console.error("Upload error:", error.message);
-      alert(`Error: ${error.message}`);
-    } finally {
-      setUploading(false);
-    }
+    });
   };
 
   const resetForm = () => {
@@ -258,7 +217,7 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
 
               {/* Upload Button */}
               <button
-                onClick={handleUpload}
+                onClick={handleSubmit}
                 disabled={uploading || !image}
                 className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors ${
                   uploading || !image
@@ -273,7 +232,7 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
         </div>
       </div>
 
-      {/* Snackbar */}
+      {/* Optional: Snackbar still exists for fallback (dev logs only) */}
       {showSnackbar && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity">
           🎉 Thanks for testing! You've reached the upload limit.
@@ -284,3 +243,5 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
 };
 
 export default ImageUploadModal;
+// This code defines a modal component for uploading images, allowing users to add titles, descriptions, and categories.
+// It includes a file input for selecting images, a preview of the selected image, and a dropdown for selecting categories. 

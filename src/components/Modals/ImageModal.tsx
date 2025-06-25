@@ -1,7 +1,7 @@
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Download } from "lucide-react";
-import { type ImageData } from "../types";
+import type { ImageData } from "../../utils/types";
+import { useImageModal } from "../../hooks/useImageModal";
 
 interface Props {
   image: ImageData;
@@ -9,17 +9,7 @@ interface Props {
 }
 
 const ImageModal = ({ image, onClose }: Props) => {
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose]);
+  useImageModal(onClose);
 
   return (
     <AnimatePresence>
@@ -37,7 +27,7 @@ const ImageModal = ({ image, onClose }: Props) => {
           className="relative w-full max-w-6xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Download Button (Top Left) */}
+          {/* Download Button */}
           <a
             href={image.signedUrl || image.url}
             download
@@ -45,7 +35,6 @@ const ImageModal = ({ image, onClose }: Props) => {
             rel="noopener noreferrer"
             className="absolute top-3 left-3 text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white z-10"
             aria-label="Download"
-            title="Download"
           >
             <Download size={28} />
           </a>
@@ -59,7 +48,7 @@ const ImageModal = ({ image, onClose }: Props) => {
             <X size={28} />
           </button>
 
-          {/* Image Container */}
+          {/* Image Viewer */}
           <div className="flex items-center justify-center w-full h-[70vh]">
             <img
               src={image.signedUrl || image.url}
@@ -71,7 +60,7 @@ const ImageModal = ({ image, onClose }: Props) => {
             />
           </div>
 
-          {/* Details */}
+          {/* Image Info */}
           <div className="p-6 text-gray-800 dark:text-gray-100">
             <h2 className="text-2xl font-bold mb-2 truncate">{image.title}</h2>
             <p className="mb-3 text-sm whitespace-pre-wrap">{image.description}</p>

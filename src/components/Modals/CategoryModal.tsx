@@ -1,5 +1,7 @@
-import { useEffect, useState, useRef } from "react";
-import { supabase } from "../supabase";
+import { useState, useRef } from "react";
+import { supabase } from "../../supabase";
+import { useModalBehavior } from "../../hooks/useModalBehavior";
+
 
 interface Props {
   onClose: () => void;
@@ -11,46 +13,34 @@ const CategoryModal = ({ onClose, onCategoryAdded }: Props) => {
   const [saving, setSaving] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  useModalBehavior(onClose); // Escape key & scroll lock
 
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === modalRef.current && !saving) onClose();
+    if (e.target === modalRef.current && !saving) {
+      onClose();
+    }
   };
 
   const handleSave = async () => {
-    if (!newCategory.trim()) return alert("Category name is required.");
-    setSaving(true);
-
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) throw new Error("User not found.");
-
-      // Insert into the 'categories' table
-      const { error } = await supabase.from("categories").insert({
-        name: newCategory.trim(),
-        user_id: user.id,
-      });
-
-      if (error) throw error;
-
-      setNewCategory("");
-      onCategoryAdded();
-      onClose();
-    } catch (error: any) {
-      console.error("Add category error:", error.message);
-      alert(`Error: ${error.message}`);
-    } finally {
-      setSaving(false);
+    if (!newCategory.trim()) {
+      alert("Category name is required.");
+      return;
     }
+
+    setSaving(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    await supabase.from("categories").insert({
+      name: newCategory.trim(),
+      user_id: user?.id,
+    });
+
+    setNewCategory("");
+    onCategoryAdded();
+    onClose();
+    setSaving(false);
   };
 
   return (

@@ -1,13 +1,41 @@
-// hooks/useImageUpload.ts
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
-import { type ImageData } from "../types";
-import { isValidFile, sanitizeFileName } from "../utils/fileUtils";
-import { logError } from "../utils/errorLogger";
+import type { ImageData } from "../utils/types";
+import { validateFile } from "../utils/fileUtils";
 
-export const useImageUpload = (onUpload: (data: ImageData) => void, showToast: (msg: string) => void) => {
+export function useImageUpload(
+  onUpload: (data: ImageData) => void,
+  showToast: (msg: string) => void
+) {
   const [uploading, setUploading] = useState(false);
   const [uploadCount, setUploadCount] = useState(0);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUploadCount = async () => {
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error || !user) throw new Error("User not authenticated.");
+        setUserId(user.id);
+
+        const { count, error: countError } = await supabase
+          .from("images")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        if (countError) throw countError;
+        setUploadCount(count ?? 0);
+      } catch {
+        showToast("Failed to fetch upload count.");
+      }
+    };
+
+    fetchUploadCount();
+  }, []);
 
   const handleUpload = async (
     file: File,
@@ -16,24 +44,24 @@ export const useImageUpload = (onUpload: (data: ImageData) => void, showToast: (
     category: string,
     onSuccess: () => void
   ) => {
-    if (uploadCount >= 2) return;
+    if (uploadCount >= 2) {
+      showToast("You’ve reached the upload limit.");
+      return;
+    }
 
-    if (!isValidFile(file)) {
-      showToast("Invalid file. Only images under 5MB are allowed.");
+    const validationError = validateFile(file);
+    if (validationError) {
+      showToast(validationError);
       return;
     }
 
     setUploading(true);
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user) throw new Error("User not authenticated.");
+      if (!userId) throw new Error("User not loaded yet.");
 
-      const sanitizedFileName = sanitizeFileName(file.name);
       const timestamp = Date.now();
-      const filePath = `${user.id}/${timestamp}_${sanitizedFileName}`;
+      const sanitizedFilename = file.name.replace(/\s+/g, "_");
+      const filePath = `${userId}/${timestamp}_${sanitizedFilename}`;
 
       const { error: uploadError } = await supabase.storage
         .from("images")
@@ -51,30 +79,21 @@ export const useImageUpload = (onUpload: (data: ImageData) => void, showToast: (
         description,
         category,
         date: new Date().toISOString(),
-        user_id: user.id,
+        user_id: userId,
       };
 
       const { error: dbError } = await supabase.from("images").insert(newImage);
       if (dbError) throw dbError;
 
       onUpload(newImage);
+      setUploadCount((prev) => prev + 1);
       onSuccess();
-
-      setUploadCount((prev) => {
-        if (prev + 1 >= 2) showToast("🎉 Thanks for testing! You've reached the upload limit.");
-        return prev + 1;
-      });
-    } catch (err: any) {
-      logError(err);
-      showToast(`Upload failed: ${err.message}`);
+    } catch {
+      showToast("Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
   };
 
-  return {
-    handleUpload,
-    uploading,
-    uploadCount,
-  };
-};
+  return { handleUpload, uploading, uploadCount };
+}

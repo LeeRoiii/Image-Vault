@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import type { ImageData } from "../types";
+import type { ImageData } from "../../utils/types";
 
 interface Props {
   data: ImageData;
