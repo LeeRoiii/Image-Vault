@@ -1,4 +1,3 @@
-// src/components/ImageUploadModal.tsx
 import { useState, useEffect, useRef } from "react";
 import { type ImageData } from "../types";
 import { supabase } from "../supabase";
@@ -11,21 +10,39 @@ interface Props {
 const ImageUploadModal = ({ onUpload, onClose }: Props) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
+  const [categories, setCategories] = useState<string[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const { data, error } = await supabase
+        .from("categories")
+        .select("name")
+        .eq("user_id", user?.id);
+
+      if (!error && data) {
+        const names = data.map((item) => item.name).filter(Boolean);
+        setCategories(names);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -33,9 +50,7 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
 
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
+      reader.onloadend = () => setPreviewUrl(reader.result as string);
       reader.readAsDataURL(file);
     } else {
       setPreviewUrl(null);
@@ -43,16 +58,20 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
   };
 
   const handleUpload = async () => {
-    if (!image) {
-      alert("Please select an image.");
-      return;
-    }
+    if (!image) return alert("Please select an image.");
+    if (!category.trim()) return alert("Please select a category.");
 
     setUploading(true);
 
     try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error("User not authenticated.");
+
       const timestamp = Date.now();
-      const filePath = `uploads/${timestamp}_${image.name}`;
+      const filePath = `${user.id}/${timestamp}_${image.name}`;
 
       const { error: uploadError } = await supabase.storage
         .from("images")
@@ -63,21 +82,12 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
 
       if (uploadError) throw uploadError;
 
-      const { data: publicUrlData } = supabase.storage
-        .from("images")
-        .getPublicUrl(filePath);
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user) throw new Error("User not authenticated.");
-
       const newImage: ImageData = {
         id: filePath,
-        url: publicUrlData.publicUrl,
+        url: filePath,
         title,
         description,
+        category,
         date: new Date().toISOString(),
         user_id: user.id,
       };
@@ -87,8 +97,9 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
 
       onUpload(newImage);
       resetForm();
+      onClose();
     } catch (error: any) {
-      console.error("Error:", error.message);
+      console.error("Upload error:", error.message);
       alert(`Error: ${error.message}`);
     } finally {
       setUploading(false);
@@ -98,14 +109,13 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
   const resetForm = () => {
     setTitle("");
     setDescription("");
+    setCategory("");
     setImage(null);
     setPreviewUrl(null);
   };
 
   const onOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === modalRef.current && !uploading) {
-      onClose();
-    }
+    if (e.target === modalRef.current && !uploading) onClose();
   };
 
   return (
@@ -115,68 +125,26 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       aria-modal="true"
       role="dialog"
-      aria-labelledby="upload-modal-title"
     >
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-auto relative p-6">
-        {/* Uploading overlay */}
-        {uploading && (
-          <div className="absolute inset-0 bg-white bg-opacity-70 dark:bg-gray-800 dark:bg-opacity-70 flex flex-col items-center justify-center rounded-lg z-50">
-            <svg
-              className="animate-spin h-12 w-12 text-blue-600 dark:text-blue-400 mb-4"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8H4z"
-              ></path>
-            </svg>
-            <p className="text-blue-700 dark:text-blue-300 font-semibold text-lg">
-              Uploading...
-            </p>
-          </div>
-        )}
-
-        {/* Close button */}
         <button
           onClick={onClose}
-          aria-label="Close modal"
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
           disabled={uploading}
         >
           ✕
         </button>
-
-        <h2
-          id="upload-modal-title"
-          className="text-xl font-semibold text-gray-800 dark:text-white mb-6"
-        >
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6">
           Upload New Image
         </h2>
 
         <div className="space-y-5">
-          {/* File Upload with Preview */}
+          {/* Image Picker */}
           <div className="space-y-2">
-            <label
-              htmlFor="file-upload"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Image
             </label>
-            <label
-              htmlFor="file-upload"
-              className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-            >
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition">
               {previewUrl ? (
                 <img
                   src={previewUrl}
@@ -218,42 +186,54 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
             </label>
           </div>
 
-          {/* Title Input */}
+          {/* Title */}
           <div className="space-y-2">
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Title
             </label>
             <input
-              id="title"
               type="text"
               placeholder="Enter a title"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={uploading}
             />
           </div>
 
-          {/* Description Textarea */}
+          {/* Description */}
           <div className="space-y-2">
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Description
             </label>
             <textarea
-              id="description"
               placeholder="Enter a description"
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={uploading}
             />
+          </div>
+
+          {/* Category Dropdown */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Category
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={uploading}
+            >
+              <option value="">Select category</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Upload Button */}
@@ -261,40 +241,12 @@ const ImageUploadModal = ({ onUpload, onClose }: Props) => {
             onClick={handleUpload}
             disabled={uploading || !image}
             className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors ${
-              uploading
+              uploading || !image
                 ? "bg-gray-400 cursor-not-allowed"
-                : !image
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                : "bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
             }`}
           >
-            {uploading ? (
-              <span className="flex items-center justify-center">
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Uploading...
-              </span>
-            ) : (
-              "Upload Image"
-            )}
+            {uploading ? "Uploading..." : "Upload Image"}
           </button>
         </div>
       </div>

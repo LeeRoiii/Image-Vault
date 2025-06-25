@@ -1,7 +1,7 @@
-// src/components/ImageModal.tsx
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Download } from "lucide-react";
 import { type ImageData } from "../types";
-import { X } from "lucide-react";
 
 interface Props {
   image: ImageData;
@@ -9,47 +9,83 @@ interface Props {
 }
 
 const ImageModal = ({ image, onClose }: Props) => {
-  // Prevent body scroll when modal is open
-  // This can also be done via effect in parent but here for simplicity
   React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [onClose]);
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
+    <AnimatePresence>
       <div
-        className="relative max-w-4xl w-full bg-white dark:bg-gray-900 rounded-lg shadow-xl overflow-auto"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={onClose}
+        aria-modal="true"
+        role="dialog"
       >
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-          aria-label="Close"
-          title="Close"
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.96 }}
+          transition={{ duration: 0.2 }}
+          className="relative w-full max-w-6xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
         >
-          <X size={28} />
-        </button>
+          {/* Download Button (Top Left) */}
+          <a
+            href={image.signedUrl || image.url}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute top-3 left-3 text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white z-10"
+            aria-label="Download"
+            title="Download"
+          >
+            <Download size={28} />
+          </a>
 
-        <img
-          src={image.url}
-          alt={image.title}
-          className="w-full max-h-[70vh] object-contain rounded-t-lg"
-        />
-        <div className="p-6 text-gray-800 dark:text-gray-100">
-          <h2 className="text-2xl font-semibold mb-2">{image.title}</h2>
-          <p className="mb-4 whitespace-pre-wrap">{image.description}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Uploaded on: {image.date}
-          </p>
-        </div>
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white z-10"
+            aria-label="Close"
+          >
+            <X size={28} />
+          </button>
+
+          {/* Image Container */}
+          <div className="flex items-center justify-center w-full h-[70vh]">
+            <img
+              src={image.signedUrl || image.url}
+              alt={image.title || "Uploaded image"}
+              className="max-h-full max-w-full object-contain"
+              onError={(e) => {
+                e.currentTarget.src = "/fallback.jpg";
+              }}
+            />
+          </div>
+
+          {/* Details */}
+          <div className="p-6 text-gray-800 dark:text-gray-100">
+            <h2 className="text-2xl font-bold mb-2 truncate">{image.title}</h2>
+            <p className="mb-3 text-sm whitespace-pre-wrap">{image.description}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Uploaded on:{" "}
+              {new Date(image.date).toLocaleString(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </p>
+          </div>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 };
 
