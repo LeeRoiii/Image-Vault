@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Snackbar from "../components/Snackbar";
-import LoadingSpinner from "../components/LoadingSpinner";
 import { useForgotPassword } from "../hooks/useForgotPassword";
 
 const ForgotPasswordPage = () => {
@@ -18,7 +17,6 @@ const ForgotPasswordPage = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center relative bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4 overflow-hidden">
-      
       {/* Background animation */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -66,13 +64,15 @@ const ForgotPasswordPage = () => {
               disabled={isLoading || !email}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white font-medium rounded-lg transition-all duration-300"
             >
-              {isLoading ? <LoadingSpinner /> : "Send Reset Email"}
+              <span className="transition-opacity duration-200 ease-in-out">
+                {isLoading ? "Checking..." : "Send Reset Email"}
+              </span>
             </button>
 
             {/* Back to Login */}
             <button
               onClick={() => navigate("/login")}
-              className="text-sm text-blue-600 dark:text-white-400 hover:underline mt-2"
+              className="text-sm text-blue-600 dark:text-white hover:underline mt-2"
             >
               Back to Login
             </button>
