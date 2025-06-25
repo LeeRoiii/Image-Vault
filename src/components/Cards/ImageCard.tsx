@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import LoadingSpinner from "../LoadingSpinner";
 import type { ImageData } from "../../utils/types";
+
 
 interface Props {
   data: ImageData;
@@ -22,14 +24,14 @@ const ImageCard = ({ data }: Props) => {
     >
       {/* Image Preview */}
       <div className="relative h-52 overflow-hidden rounded-t-3xl bg-gray-200 dark:bg-gray-700">
+        {/* Loading Spinner */}
         {!loaded && !error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 animate-pulse">
-            <svg className="w-10 h-10 text-gray-400 dark:text-gray-600" fill="none" viewBox="0 0 24 24">
-              <path stroke="currentColor" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+            <LoadingSpinner />
           </div>
         )}
 
+        {/* Error fallback */}
         {error && (
           <div className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400">
             <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -38,6 +40,7 @@ const ImageCard = ({ data }: Props) => {
           </div>
         )}
 
+        {/* Image */}
         <img
           src={error ? "/fallback.jpg" : imageUrl}
           alt={data.title || "User uploaded image"}

@@ -1,4 +1,3 @@
-// src/components/LoadingSpinner.tsx
 const LoadingSpinner = () => (
   <div className="flex justify-center mt-8">
     <svg
