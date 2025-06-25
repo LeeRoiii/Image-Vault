@@ -8,7 +8,8 @@ const EmptyState = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
       className="flex flex-col items-center justify-center mt-24 text-gray-500 dark:text-gray-400 select-none px-4"
-    >
+    > 
+    
       {/* Floating Icon */}
       <motion.div
         animate={{ y: [0, -6, 0] }}
