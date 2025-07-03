@@ -16,39 +16,23 @@ export const useLogin = () => {
     setTimeout(() => setSnackbar((prev) => ({ ...prev, visible: false })), 3000);
   };
 
-  const handleLogin = async (email: string, password: string): Promise<"success" | "error" | "network-error"> => {
+  const handleLogin = async (email: string, password: string) => {
     setIsLoading(true);
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (error || !data.session) {
-        const message = error?.message || "No active session";
-
-        if (message.toLowerCase().includes("fetch") || message.toLowerCase().includes("network")) {
-          showSnackbar("Network error. Please try again later.", "error");
-          setIsLoading(false);
-          return "network-error";
-        }
-
-        showSnackbar(message, "error");
-        setIsLoading(false);
-        return "error";
-      }
-
-      showSnackbar("Login successful!", "success");
+    if (error || !data.session) {
+      showSnackbar(error?.message || "No active session", "error");
       setIsLoading(false);
-
-      setTimeout(() => {
-        navigate("/");
-      }, 1000);
-
-      return "success";
-    } catch (e) {
-      showSnackbar("Unexpected error occurred.", "error");
-      setIsLoading(false);
-      return "network-error";
+      return;
     }
+
+    showSnackbar("Login successful!", "success");
+    setIsLoading(false);
+
+    setTimeout(() => {
+      navigate("/");
+    }, 1000);
   };
 
   return {
